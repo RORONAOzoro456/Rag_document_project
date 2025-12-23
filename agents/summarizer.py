@@ -185,17 +185,20 @@ def summarize_text(
     text: str,
     llm_predict: Optional[Callable[[str], str]] = None,
     depth: str = "medium",
-    chunk_size: int = 1000,
+    chunk_size: int = 4000,
     chunk_overlap: int = 200,
     temperature: float = 0.0,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
+    max_output_words: int = 200,
 ) -> str:
-    """Hierarchical summarization of raw text using map-reduce style steps.
+    """Hierarchical summarization of raw text using chunked map-reduce steps.
 
-    Steps:
-    - Split the text into chunks
-    - Map: produce a chunk-level summary for each chunk
-    - Reduce: group chunk summaries into section summaries
-    - Synthesize: create final multi-section summary
+    Behavior changes:
+    - Default chunk size increased to ~4000 characters (~1000 tokens).
+    - Summarize each chunk independently to avoid long blocking inference.
+    - `progress_callback(current_chunk_index, total_chunks)` will be called
+      after each chunk summary to allow UI updates.
+    - A final synthesis pass combines all chunk summaries into the final output.
     """
     from rag.loader import get_text_splitter
 
@@ -207,15 +210,29 @@ def summarize_text(
 
     llm = _ensure_llm(llm_predict, temperature=temperature)
 
-    # Map: summarize each chunk
+    # Map: summarize each chunk and report progress
     chunk_summaries: List[str] = []
-    for c in chunks:
-        s = _summarize_chunk(c, llm, depth=depth, temperature=temperature)
+    total = len(chunks)
+    for idx, c in enumerate(chunks):
+        # Add a firm instruction to limit output size per chunk to keep inference bounded
+        raw_prompt = (
+            "Limit your response to at most "
+            f"{max_output_words} words. Produce a concise chunk summary focusing on key concepts, examples, and conclusions.\n\nTEXT:\n"
+            f"{c}"
+        )
+        s = _summarize_chunk(raw_prompt, llm, depth=depth, temperature=temperature)
         chunk_summaries.append(s.strip())
 
-    # Determine grouping for section synthesis based on number of chunks
+        # Progress callback supports UI updates (e.g., Streamlit progress bar)
+        if progress_callback is not None:
+            try:
+                progress_callback(idx + 1, total)
+            except Exception:
+                # Progress reporting must not break summarization
+                pass
+
+    # Reduce: combine chunk summaries into section summaries
     num_chunks = max(1, len(chunk_summaries))
-    # target number of sections scales with document size and depth
     if depth == "short":
         target_sections = min(6, max(1, num_chunks // 8))
     elif depth == "detailed":
@@ -224,7 +241,6 @@ def summarize_text(
         target_sections = min(8, max(1, num_chunks // 6))
     target_sections = max(1, target_sections)
 
-    # Group sequentially
     group_size = max(1, -(-num_chunks // target_sections))  # ceil division
     section_summaries: List[str] = []
     for i in range(0, num_chunks, group_size):
@@ -232,7 +248,8 @@ def summarize_text(
         sec = _synthesize_section(group, llm, depth=depth, temperature=temperature)
         section_summaries.append(sec.strip())
 
-    # Final synthesis
+    # Final synthesis on the combined section summaries
+    combined_summary_text = "\n\n".join(section_summaries)
     final = _final_synthesis(section_summaries, llm, depth=depth, temperature=temperature)
     return final
 

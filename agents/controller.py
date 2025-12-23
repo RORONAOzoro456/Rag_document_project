@@ -169,25 +169,42 @@ class Controller:
 			# summarizer has a file-based helper; if source_path is provided
 			# prefer it so the summarizer can load using the project's loader
 			try:
+				# Create a progress callback that uses Streamlit if available so the UI
+				# receives live updates without requiring changes to app.py.
+				progress_cb = None
+				try:
+					import streamlit as st
+					progress_bar = st.progress(0)
+					status = st.empty()
+					def _progress(current: int, total: int) -> None:
+						# Update simple progress UI: chunk number and percentage
+						pct = int((current / total) * 100)
+						progress_bar.progress(pct)
+						status.text(f"Summarizing chunk {current}/{total} ({pct}%)")
+					progress_cb = _progress
+				except Exception:
+					# Streamlit not available or UI context missing; continue without UI
+					progress_cb = None
+
 				if source_path:
 					summary = summarize_document(
 						source_path,
 						llm_predict=self.llm_predict,
 						depth=summary_depth,
 						temperature=self.temperature,
+						chunk_size=summary_max_words if False else 4000,
+						progress_callback=progress_cb,
 					)
 				else:
-					# The summarizer also exposes a text-based entrypoint; use
-					# the file-based one by writing a small helper to avoid
-					# duplicating RAG logic here. For simplicity, use
-					# summarize_document by saving to a temporary file is
-					# avoided; instead call the text-based summarizer path
+					# Use text-based summarizer with progress updates
 					from agents.summarizer import summarize_text
 
 					summary = summarize_text(
 						text,
 						llm_predict=self.llm_predict,
 						depth=summary_depth,
+						chunk_size=4000,
+						progress_callback=progress_cb,
 						temperature=self.temperature,
 					)
 				results["summary"] = summary
