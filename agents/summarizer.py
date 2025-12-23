@@ -258,9 +258,10 @@ def summarize_document(
     path: str,
     llm_predict: Optional[Callable[[str], str]] = None,
     depth: str = "medium",
-    chunk_size: int = 1000,
+    chunk_size: int = 4000,
     chunk_overlap: int = 200,
     temperature: float = 0.0,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
 ) -> str:
     """Load a file and perform hierarchical summarization.
 
@@ -290,6 +291,7 @@ def summarize_document(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         temperature=temperature,
+        progress_callback=progress_callback,
     )
 
 

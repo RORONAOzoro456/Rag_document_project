@@ -192,7 +192,7 @@ class Controller:
 						llm_predict=self.llm_predict,
 						depth=summary_depth,
 						temperature=self.temperature,
-						chunk_size=summary_max_words if False else 4000,
+						chunk_size=4000,
 						progress_callback=progress_cb,
 					)
 				else:
