@@ -4,7 +4,6 @@ langchain-community>=0.4.1
 langchain-text-splitters>=1.1.0
 sentence-transformers>=2.2.2
 faiss-cpu>=1.7.4
-ollama>=0.0.8
 python-docx>=0.8.11
 docx2txt>=0.8.0
 pypdf>=3.0.0

@@ -24,7 +24,7 @@ from typing import List, Sequence, Optional, Callable, Dict, Any
 from pathlib import Path
 import logging
 
-from rag.loader import load_and_split
+from rag.loader import load_and_split_documents as load_and_split
 from rag.vectorstore import FaissVectorStore
 
 logger = logging.getLogger(__name__)
@@ -162,13 +162,23 @@ def _final_synthesis(
 
 
 def _ensure_llm(llm_predict: Optional[Callable[[str], str]], temperature: float = 0.0) -> Callable[[str], str]:
-    """Return a callable llm_predict; prefer provided callable, otherwise default to cloud OpenAI helper."""
+    """Return a callable llm_predict; prefer provided callable, otherwise use unified LLM selector.
+
+    This delegates to `agents.llm.get_llm_predict` which selects Ollama (local)
+    when available or OpenAI when running in cloud environments.
+    """
     if llm_predict is not None:
         return lambda p: llm_predict(p)
-    # Use OpenAI by default (requires OPENAI_API_KEY)
-    if openai is not None:
-        return lambda p: _default_cloud_llm_predict(p, temperature=temperature)
-    raise RuntimeError("No LLM available: set OPENAI_API_KEY and install openai, or provide llm_predict to summarizer.")
+
+    # Defer to agents.llm for auto-selection between Ollama and OpenAI
+    try:
+        from agents.llm import get_llm_predict
+
+        return get_llm_predict(temperature=temperature)
+    except Exception as e:
+        raise RuntimeError(
+            "No LLM available: install/configure Ollama or set OPENAI_API_KEY, or pass llm_predict to summarizer."
+        ) from e
 
 
 def summarize_text(
@@ -237,7 +247,7 @@ def summarize_document(
 ) -> str:
     """Load a file and perform hierarchical summarization.
 
-    This function loads and chunks the document using `rag.loader.load_and_split`
+    This function loads and chunks the document using `rag.loader.load_and_split_documents`
     and then applies the hierarchical summarization pipeline above.
     """
     docs = load_and_split(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -266,68 +276,7 @@ def summarize_document(
     )
 
 
-def summarize_document(
-    path: str,
-    llm_predict: Optional[Callable[[str], str]] = None,
-    max_words: int = 200,
-    top_k: int = 6,
-    temperature: float = 0.0,
-) -> str:
-    """Load a file and summarize it using RAG.
 
-    Args:
-        path: Path to a supported file (pdf, txt, docx). Uses `rag.loader`.
-        llm_predict: Optional callable(prompt) used to produce the summary.
-        max_words: Maximum allowed words in the summary.
-        top_k: How many retrieved passages to include.
-        temperature: LLM temperature.
-
-    Returns:
-        Summary string.
-    """
-    # Use loader to get chunks for the file path
-    docs = load_and_split(path, chunk_size=800, chunk_overlap=100)
-
-    # Prepare docs for vector store
-    doc_dicts: List[Dict[str, Any]] = []
-    for d in docs:
-        content = getattr(d, "page_content", None) or getattr(d, "text", None) or str(d)
-        md = dict(getattr(d, "metadata", {}) or {})
-        md.setdefault("text", content)
-        doc_dicts.append(md)
-
-    store = FaissVectorStore()
-    texts = [md["text"] for md in doc_dicts]
-    store.add_documents(texts, doc_dicts)
-
-    # Use the same RAG summarization path: retrieve and summarize
-    query = "Summarize the document concisely."
-    results = store.search(query, k=top_k)
-    passages = [md.get("text") for md, _ in results if md.get("text")]
-
-    if not passages:
-        return "Insufficient information to produce a reliable summary."
-
-    prompt = _build_rag_prompt(passages, max_words=max_words)
-
-    if llm_predict is not None:
-        raw = llm_predict(prompt)
-    else:
-        ollama = get_ollama_predict()
-        if ollama is None:
-            raise RuntimeError("Local Ollama model not available. Install and run Ollama and ensure qwen2.5:3b is pulled.")
-        raw = ollama(prompt)
-
-    if raw is None:
-        raise RuntimeError("LLM produced no output")
-
-    summary = raw.strip()
-    words = summary.split()
-    if len(words) > max_words:
-        logger.debug("Summary exceeds %d words; truncating to word limit.", max_words)
-        summary = " ".join(words[:max_words]).rstrip() + "..."
-
-    return summary
 
 
 if __name__ == "__main__":

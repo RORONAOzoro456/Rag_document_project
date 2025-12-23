@@ -1,15 +1,14 @@
 """Streamlit app for the Agentic RAG pipeline.
 
 Features:
-- File upload (PDF, TXT, DOCX) or paste text
+- File upload (PDF, TXT, DOCX, XLSX, CSV) or paste text
 - Runs the agentic pipeline: classification -> summarization -> findings
-- Uses Ollama's local model `qwen2.5:3b` when available
-- Displays document type, summary (<=200 words), and bullet findings
+- Uses a cloud LLM (OpenAI) by default when `OPENAI_API_KEY` is set
+- Displays document type, a detailed structured summary, and bullet findings
 
-Notes on Ollama integration:
-- The app will attempt to use the `ollama` Python client if installed.
-- If you prefer a different LLM or remote API, pass a custom `llm_predict`
-  callable to the Controller in code or modify the app to use your client.
+Notes on LLM configuration:
+- The app uses the default cloud LLM helper (OpenAI) when available.
+- You may also pass a custom `llm_predict` callable to the Controller to use another LLM.
 """
 
 from __future__ import annotations
@@ -26,9 +25,10 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-from agents.llm import get_ollama_predict
+from agents.llm import get_llm_predict, is_ollama_available, is_cloud_llm_configured
 
-# Use centralized Ollama helper which enforces local-only policy and logs failures.
+# Use unified LLM selector by default (prefers Ollama locally, otherwise OpenAI). Both
+# LOCAL (Ollama) and CLOUD (OpenAI) modes are supported; selection is runtime-based.
 
 
 def save_uploaded_file(uploaded) -> str:
@@ -44,35 +44,33 @@ def main():
 
     st.header("Agentic RAG — Document Analysis")
 
-    # Build llm_predict adapter for Ollama if present and check availability
-    llm_predict = get_ollama_predict()
+    # Build llm_predict adapter (auto-select Ollama or cloud) and check availability
+    try:
+        llm_predict = get_llm_predict(temperature=0.0)
+        llm_available = True
+    except Exception:
+        llm_predict = None
+        llm_available = False
 
-    ollama_available = False
-    if llm_predict is not None:
-        try:
-            llm_predict("Ping")
-            ollama_available = True
-        except Exception as e:  # pragma: no cover - runtime behavior depends on env
-            logger.debug("Ollama client present but not responding: %s", e)
-            llm_predict = None
-
+    # For environments where a local LLM is desired, users may also inject a custom
+    # `llm_predict` callable into the Controller. If no LLM is available, disable Run.
     col1, col2 = st.columns([1, 3])
 
     with col1:
         st.markdown("### Input")
 
-        if not ollama_available:
+        if not llm_available:
             # Inform user and explain why LLM features are disabled
-            st.warning("This app requires a local Ollama service. Full functionality is available when running locally.")
-            st.info("LLM features are disabled in this environment; the Run button is disabled. You can still upload files to view loader-only results.")
+            st.warning("No LLM is configured. Install/configure Ollama locally or set OPENAI_API_KEY to enable full functionality; you can still upload files to view loader-only results.")
+            st.info("LLM features are disabled in this environment; the Run button is disabled.")
 
-        uploaded = st.file_uploader("Upload a document (Supported: PDF, TXT, DOCX, PPTX, XML, JSON, HTML, CSV)")
+        uploaded = st.file_uploader("Upload a document (Supported: PDF, TXT, DOCX, PPTX, XML, JSON, HTML, CSV, XLSX, CSV)")
         raw_text = st.text_area("Or paste text here (optional)", height=200)
         from agents.classifier import DEFAULT_LABELS
         default_labels = ", ".join(DEFAULT_LABELS)
         labels_input = st.text_input("Allowed labels (comma-separated)", value=default_labels)
-        # Disable the Run button when Ollama is unavailable to prevent runtime errors
-        run_btn = st.button("Run analysis", disabled=not ollama_available)
+        # Disable the Run button when no LLM is available to prevent runtime errors
+        run_btn = st.button("Run analysis", disabled=not llm_available)
 
     with col2:
         st.markdown("### Results")

@@ -30,7 +30,7 @@ from difflib import get_close_matches
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-from agents.llm import get_ollama_predict
+from agents.llm import get_llm_predict
 
 # Default labels recommended for the project
 DEFAULT_LABELS = [
@@ -104,11 +104,9 @@ def classify_document(
 	if llm_predict is not None:
 		raw = llm_predict(prompt)
 	else:
-		# Enforce local-only LLM usage: try Ollama, otherwise raise error
-		ollama = get_ollama_predict()
-		if ollama is None:
-			raise RuntimeError("Local Ollama model not available. Install and run Ollama and ensure qwen2.5:3b is pulled.")
-		raw = ollama(prompt)
+		# Use unified LLM selector (Ollama local preferred, otherwise OpenAI)
+		default = get_llm_predict(temperature=temperature)
+		raw = default(prompt)
 
 	if raw is None:
 		raise RuntimeError("LLM produced no output")

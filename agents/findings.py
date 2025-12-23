@@ -29,8 +29,8 @@ from rag.vectorstore import FaissVectorStore
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-from agents.llm import get_ollama_predict
-# Enforce local-only LLM usage; do not fallback to cloud LLMs.
+from agents.llm import get_llm_predict
+# Use unified LLM selector by default (prefers Ollama locally, otherwise OpenAI)
 
 
 def _chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> List[str]:
@@ -147,8 +147,8 @@ def extract_findings_from_text(
 
     Args:
         text: Full document text.
-        llm_predict: Optional callable(prompt) -> raw_text. If omitted and
-            LangChain is installed, uses Ollama with the given temperature.
+        llm_predict: Optional callable(prompt) -> raw_text. If omitted, falls back
+            to the default cloud LLM (OpenAI) if configured via OPENAI_API_KEY.
         max_findings: Maximum number of bullet findings to return.
         top_k: Number of retrieved passages to include in the prompt.
         temperature: LLM temperature (0 for deterministic behavior).
@@ -182,10 +182,8 @@ def extract_findings_from_text(
     if llm_predict is not None:
         raw = llm_predict(prompt)
     else:
-        ollama = get_ollama_predict()
-        if ollama is None:
-            raise RuntimeError("Local Ollama model not available. Install and run Ollama and ensure qwen2.5:3b is pulled.")
-        raw = ollama(prompt)
+        default = get_llm_predict(temperature=temperature)
+        raw = default(prompt)
 
     bullets = _parse_bullets(raw)
     # Ensure we don't return more than requested

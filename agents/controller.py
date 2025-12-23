@@ -112,8 +112,8 @@ class Controller:
 		run_summarize: bool = True,
 		run_findings: bool = True,
 		summarize_max_words: int = 200,
-	summary_depth: str = "medium",
-) -> Dict[str, Any]:
+		summary_depth: str = "medium",
+	) -> Dict[str, Any]:
 		"""Process a file through the pipeline and return structured results.
 
 		Returns a dict with keys: 'label' (optional), 'summary' (optional),
@@ -128,9 +128,18 @@ class Controller:
 			run_findings=run_findings,
 			summarize_max_words=summarize_max_words,
 			summary_depth=summary_depth,
+		)
+
+	def process_text(
+		self,
+		text: str,
+		labels: Optional[Sequence[str]] = None,
+		run_classify: bool = True,
 		run_summarize: bool = True,
 		run_findings: bool = True,
-		summarize_max_words: int = 200,	summary_depth: str = "medium",		source_path: Optional[str] = None,
+		summarize_max_words: int = 200,
+		summary_depth: str = "medium",
+		source_path: Optional[str] = None,
 	) -> Dict[str, Any]:
 		"""Process raw text.
 

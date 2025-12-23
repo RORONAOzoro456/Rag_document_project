@@ -43,7 +43,7 @@ except Exception:  # pragma: no cover - optional dependency
 	python_docx = None
 
 try:
-	import openpyxl  # xlsx support for pandas
+	import openpyxl  # xlsx support for pandas  # type: ignore[import]
 except Exception:  # pragma: no cover - optional dependency
 	openpyxl = None
 
@@ -247,33 +247,37 @@ def _get_loader_for_path(path: Union[str, Path]):
 			return "\n\n".join(rows)
 		return _csv_loader
 
-if suffix in (".xls", ".xlsx"):
-	def _excel_loader():
-		# Read all sheets and convert into readable narratives preserving headers
-		df_dict = pd.read_excel(p, sheet_name=None)
-		parts = []
-		for sheet_name, df in df_dict.items():
-			parts.append(f"SHEET: {sheet_name}")
-			if df.empty:
-				parts.append("(empty sheet)")
-			else:
-				# make small readable sentences for each row
-				for _, r in df.iterrows():
-					cells = [f"{c}: {r[c]}" for c in df.columns]
-					parts.append("; ".join(cells))
-		return "\n\n".join(parts)
-	return _excel_loader
+	if suffix in (".xls", ".xlsx"):
+		def _excel_loader():
+			# Read all sheets and convert into readable narratives preserving headers
+			df_dict = pd.read_excel(p, sheet_name=None)
+			parts = []
+			for sheet_name, df in df_dict.items():
+				parts.append(f"SHEET: {sheet_name}")
+				if df.empty:
+					parts.append("(empty sheet)")
+				else:
+					for _, r in df.iterrows():
+						cells = [f"{c}: {r[c]}" for c in df.columns]
+						parts.append("; ".join(cells))
+			return "\n\n".join(parts)
+		return _excel_loader
+def load_and_split_documents(
+	paths: Union[str, Path, List[Union[str, Path]]],
+	chunk_size: int = 800,
+	chunk_overlap: int = 100,
+) -> List[Document]:
 	"""Load documents (paths or raw text) and split them into chunks.
 
-	This single function normalizes input so agents can operate on text-only
+	This function normalizes input so agents can operate on text-only
 	Document objects regardless of source format. If ``paths`` are file
 	paths, each supported file type is converted to text using safe,
 	format-specific extractors. If a string is provided that is not a
 	filesystem path, it is treated as raw document text.
 	"""
-	if RecursiveCharacterTextSplitter is None:
+	if RecursiveCharacterTextSplitter is None and _FallbackTextSplitter is None:
 		raise RuntimeError(
-			"RecursiveCharacterTextSplitter is not available. Ensure langchain is installed."
+			"RecursiveCharacterTextSplitter is not available. Ensure langchain is installed or use the fallback splitter."
 		)
 
 	# Normalize to list of sources
@@ -282,48 +286,34 @@ if suffix in (".xls", ".xlsx"):
 	else:
 		sources = list(paths)
 
-	all_docs: List[object] = []
+	all_docs: List[Document] = []
+	splitter = get_text_splitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
 	for src in sources:
-		# If src exists on disk, use file loaders; otherwise treat as raw text
 		p = Path(src)
 		raw_texts: List[str] = []
 		if isinstance(src, (str, Path)) and p.exists():
-			loader_or_callable = _get_loader_for_path(p)
-			# If the loader_or_callable is a class-based loader with load(), use it
-			if hasattr(loader_or_callable, "load"):
-				loader = loader_or_callable
-				try:
-					raw_docs = loader.load()
-				except TypeError:
-					raw_docs = loader.load()
-				# raw_docs expected to be list of Documents
-				for doc in raw_docs:
-					content = getattr(doc, "page_content", None) or getattr(doc, "text", None) or str(doc)
-					raw_texts.append(content)
-			else:
-				# loader_or_callable is a callable that returns text
-				text = loader_or_callable()
-				raw_texts.append(text)
+			loader = _get_loader_for_path(p)
+			# loader returns text when called
+			text = loader()
+			raw_texts.append(text)
 		else:
 			# treat src as raw text
 			raw_texts.append(str(src))
 
-		if not raw_texts:
-			logger.debug("No text extracted from source: %s", src)
-			continue
-
-		# Create Document objects compatible with the rest of the code (module-level Document)
-		docs_for_split = [Document(page_content=t, metadata={}) for t in raw_texts]
-
-		# Split using available splitter (langchain or fallback)
-		splitter = get_text_splitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-		for doc in docs_for_split:
+		for t in raw_texts:
+			if not t or not t.strip():
+				continue
+			doc = Document(page_content=t, metadata={"source": str(p) if p.exists() else None})
 			chunks = splitter.split_documents([doc])
 			all_docs.extend(chunks)
 
 	logger.info("Loaded and split %d chunks from %d sources", len(all_docs), len(sources))
 	return all_docs
+
+
+# Backwards compatibility alias
+load_and_split = load_and_split_documents
 
 
 if __name__ == "__main__":
