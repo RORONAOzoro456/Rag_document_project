@@ -208,50 +208,12 @@ class Controller:
 						temperature=self.temperature,
 					)
 				results["summary"] = summary
+
+				# If we used Streamlit progress UI, mark completion
+				try:
+					if 'progress_bar' in locals():
+						progress_bar.progress(100)
+						status.text("Summarization complete.")
+				except Exception:
+					pass
 			except Exception as e:  # pragma: no cover - runtime errors depend on env
-				logger.exception("Summarization failed: %s", e)
-				results["summary"] = None
-
-		if run_findings:
-			try:
-				if source_path:
-					findings = extract_findings_from_document(
-						source_path,
-						llm_predict=self.llm_predict,
-						temperature=self.temperature,
-					)
-				else:
-					findings = extract_findings_from_text(
-						text,
-						llm_predict=self.llm_predict,
-						temperature=self.temperature,
-					)
-				results["findings"] = findings
-			except Exception as e:  # pragma: no cover
-				logger.exception("Findings extraction failed: %s", e)
-				results["findings"] = []
-
-		return results
-
-
-def extract_findings_from_text(text: str, **kwargs):
-	"""Local import helper to avoid circular import at module load time."""
-	from agents.findings import extract_findings_from_text as _f
-
-	return _f(text, **kwargs)
-
-
-if __name__ == "__main__":
-	# Small CLI to run the controller on a single file and print results.
-	import argparse
-	import json
-
-	parser = argparse.ArgumentParser(description="Run controller on a document")
-	parser.add_argument("path", help="Path to document (pdf, txt, docx)")
-	parser.add_argument("--labels", nargs="+", help="Allowed labels for classification", required=True)
-	args = parser.parse_args()
-
-	c = Controller(labels=args.labels)
-	out = c.process_file(args.path)
-	print(json.dumps(out, indent=2, ensure_ascii=False))
-

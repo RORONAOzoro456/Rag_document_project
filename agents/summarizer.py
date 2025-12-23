@@ -95,6 +95,7 @@ def _summarize_chunk(
     llm_predict: Callable[[str], str],
     depth: str = "medium",
     temperature: float = 0.0,
+    max_output_words: Optional[int] = None,
 ) -> str:
     """Produce a focused summary for a single chunk requesting key concepts, explanations, examples, conclusions."""
     depth_map = {
@@ -103,13 +104,17 @@ def _summarize_chunk(
         "detailed": "Provide a detailed paragraph emphasizing concepts, explanations and examples if present (4-8 sentences).",
     }
     instruction = depth_map.get(depth, depth_map["medium"])
+    length_instr = ""
+    if max_output_words is not None:
+        length_instr = f"\nLimit your response to at most {max_output_words} words."
+
     prompt = (
         "You are a helpful summarization assistant. For the provided text, produce a focused summary that includes:\n"
         "- Key concepts and important facts.\n"
         "- Brief explanations of those concepts.\n"
         "- Examples if present in the text.\n"
         "- A short concluding sentence.\n\n"
-        f"{instruction}\n\n"
+        f"{instruction}{length_instr}\n\n"
         "TEXT:\n"
         f"{chunk}\n\n"
         "Provide a short structured paragraph as the chunk summary."
@@ -220,7 +225,7 @@ def summarize_text(
             f"{max_output_words} words. Produce a concise chunk summary focusing on key concepts, examples, and conclusions.\n\nTEXT:\n"
             f"{c}"
         )
-        s = _summarize_chunk(raw_prompt, llm, depth=depth, temperature=temperature)
+        s = _summarize_chunk(c, llm, depth=depth, temperature=temperature, max_output_words=max_output_words)
         chunk_summaries.append(s.strip())
 
         # Progress callback supports UI updates (e.g., Streamlit progress bar)
