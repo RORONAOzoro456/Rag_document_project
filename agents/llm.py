@@ -54,44 +54,60 @@ def is_cloud_llm_configured() -> bool:
     return bool(os.environ.get("OPENAI_API_KEY"))
 
 
-def get_ollama_predict(model: str = "llama2", temperature: float = 0.0) -> Callable[[str], str]:
-    """Return a callable(prompt)->str that uses Ollama for inference.
+def get_ollama_predict(model: str = "qwen2.5:3b", temperature: float = 0.0, timeout: int = 180) -> Callable[[str], str]:
+    """Return a callable(prompt)->str that uses the Ollama HTTP API for inference.
 
-    Tries multiple ways to invoke Ollama (Python package or `ollama` CLI).
-    Raises RuntimeError if Ollama is not available or an invocation fails.
+    This implementation calls POST http://127.0.0.1:11434/api/generate with JSON:
+    {"model": model, "prompt": prompt, "stream": false}
+
+    Requirements enforced:
+    - Use requests.post
+    - endpoint /api/generate
+    - send "prompt" field
+    - stream=false
+    - parse response["response"]
+    - timeout >= 180s by default
+    - do not swallow exceptions; raise clear RuntimeError with server response text
     """
     if not is_ollama_available():
-        raise RuntimeError("Ollama is not available on this system")
+        raise RuntimeError("Ollama HTTP server not reachable at http://127.0.0.1:11434")
+
+    try:
+        import requests
+    except Exception as e:  # pragma: no cover - optional dependency
+        raise RuntimeError("The 'requests' package is required for Ollama HTTP mode") from e
+
+    url = "http://127.0.0.1:11434/api/generate"
 
     def _predict(prompt: str) -> str:
-        # Try Python package API first (if present)
-        if ollama is not None:
-            try:
-                # Modern Ollama client may provide a `generate` function or a client class
-                if hasattr(ollama, "Ollama"):
-                    client = ollama.Ollama()
-                    out = client.generate(model=model, prompt=prompt, temperature=temperature)
-                    # Try common attributes
-                    if isinstance(out, dict):
-                        return out.get("output") or out.get("text") or str(out)
-                    return getattr(out, "text", getattr(out, "output", str(out)))
-                if hasattr(ollama, "generate"):
-                    out = ollama.generate(model=model, prompt=prompt, temperature=temperature)
-                    if isinstance(out, dict):
-                        return out.get("output") or out.get("text") or str(out)
-                    return getattr(out, "text", getattr(out, "output", str(out)))
-            except Exception as e:
-                logger.debug("Ollama Python API failed: %s", e)
-                # Fall through to CLI attempt
-
-        # Fallback to calling `ollama` CLI (requires Ollama binary in PATH)
+        payload = {"model": model, "prompt": prompt, "stream": False}
         try:
-            proc = subprocess.run(["ollama", "run", model, "--max-tokens", "3000"], input=prompt.encode("utf-8"), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-            out = proc.stdout.decode("utf-8").strip()
-            return out
+            resp = requests.post(url, json=payload, timeout=timeout)
         except Exception as e:
-            logger.error("Ollama invocation failed: %s", e)
-            raise RuntimeError("Ollama inference failed")
+            # Surface transport-level errors clearly
+            raise RuntimeError(f"Ollama HTTP request failed: {e}") from e
+
+        # If server returned non-2xx status, include body in error
+        if resp.status_code < 200 or resp.status_code >= 300:
+            raise RuntimeError(f"Ollama inference failed: status {resp.status_code}: {resp.text}")
+
+        # Parse JSON body
+        try:
+            j = resp.json()
+        except Exception as e:
+            raise RuntimeError(f"Ollama returned non-JSON response: {resp.status_code}: {resp.text}") from e
+
+        # Prefer explicit 'response' field
+        if "response" in j and isinstance(j["response"], str):
+            return j["response"]
+
+        # Fall back to other common fields
+        if "output" in j and isinstance(j["output"], str):
+            return j["output"]
+        if "text" in j and isinstance(j["text"], str):
+            return j["text"]
+
+        raise RuntimeError(f"Ollama inference returned unexpected payload: {j}")
 
     return _predict
 
