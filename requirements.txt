@@ -1,0 +1,20 @@
+streamlit>=1.24
+langchain-core>=1.2.5
+langchain-community>=0.4.1
+langchain-text-splitters>=1.1.0
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4
+ollama>=0.0.8
+python-docx>=0.8.11
+docx2txt>=0.8.0
+pypdf>=3.0.0
+unstructured>=0.6.9
+beautifulsoup4>=4.12.2
+lxml>=4.9.2
+pandas>=2.0.0
+python-pptx>=0.6.21
+python-magic-bin>=0.4.13,<0.5.0  # Windows-friendly; optional (adjusted to available PyPI versions)
+requests>=2.28.0
+tf-keras>=2.12.0
+# Optional: add a pinned torch variant if you want explicit control over CPU vs GPU installs
+# torch>=2.2.0

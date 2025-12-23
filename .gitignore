@@ -1,0 +1,78 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+venv.bak/
+pip-wheel-metadata/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Test and cache
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# dotenv and secrets
+.env
+.env.*.local
+
+# Jupyter
+.ipynb_checkpoints
+
+# Streamlit
+.streamlit/
+
+# Local models and large files (do NOT commit local model weights)
+models/
+model_weights/
+local_models/
+ollama/
+llama/
+llama_models/
+*.pt
+*.bin
+*.safetensors
+*.onnx
+*.h5
+*.ckpt
+
+# Logs and temp files
+*.log
+tmp/
+temp/
+*.tmp
+
+# Keys and certs
+*.pem
+*.key
+*.crt
+
+# Node
+node_modules/
+
+# Other
+*.sqlite3
+
+# End of .gitignore
