@@ -169,16 +169,40 @@ def _get_loader_for_path(path: Union[str, Path]):
 	suffix = p.suffix.lower()
 	if suffix == ".pdf":
 		LoaderCls = _choose_pdf_loader()
-		return LoaderCls(str(p))
+		def _pdf_loader():
+			loader = LoaderCls(str(p))
+			# Most LangChain PDF loaders implement `load()` -> List[Document]
+			if hasattr(loader, "load"):
+				return loader.load()
+			# Fallback: some loaders may expose `load_and_split` or similar
+			if hasattr(loader, "load_and_split"):
+				return loader.load_and_split()
+			# No supported loading method found on this loader class
+			raise RuntimeError("PDF loader class does not implement 'load' or 'load_and_split'")
+		return _pdf_loader
 	if suffix == ".txt":
 		if TextLoader is None:
 			raise RuntimeError("TextLoader is not available. Ensure langchain is installed.")
-		return TextLoader(str(p), encoding="utf-8")
+		def _txt_loader():
+			loader = TextLoader(str(p), encoding="utf-8")
+			if hasattr(loader, "load"):
+				return loader.load()
+			# No supported loading method found on this loader class
+			raise RuntimeError("Text loader class does not implement 'load'")
+		return _txt_loader
 	if suffix == ".docx":
 		# Prefer LangChain loaders when available; otherwise fall back to python-docx
 		try:
 			LoaderCls = _choose_docx_loader()
-			return LoaderCls(str(p))
+			def _docx_loader():
+				loader = LoaderCls(str(p))
+				if hasattr(loader, "load"):
+					return loader.load()
+				if hasattr(loader, "load_and_split"):
+					return loader.load_and_split()
+				# No supported loading method found on this loader class
+				raise RuntimeError("DOCX loader class does not implement 'load' or 'load_and_split'")
+			return _docx_loader
 		except Exception:
 			# Fallback: use python-docx to extract paragraphs and tables
 			if python_docx is None:
@@ -210,7 +234,15 @@ def _get_loader_for_path(path: Union[str, Path]):
 			return _docx_fallback
 	if suffix == ".pptx":
 		LoaderCls = _choose_pptx_loader()
-		return LoaderCls(str(p))
+		def _pptx_loader():
+			loader = LoaderCls(str(p))
+			if hasattr(loader, "load"):
+				return loader.load()
+			if hasattr(loader, "load_and_split"):
+				return loader.load_and_split()
+			# No supported loading method found on this loader class
+			raise RuntimeError("PPTX loader class does not implement 'load' or 'load_and_split'")
+		return _pptx_loader
 	if suffix == ".xml":
 		# Use lxml to parse and extract text nodes
 		def _xml_loader():
@@ -294,9 +326,18 @@ def load_and_split_documents(
 		raw_texts: List[str] = []
 		if isinstance(src, (str, Path)) and p.exists():
 			loader = _get_loader_for_path(p)
-			# loader returns text when called
-			text = loader()
-			raw_texts.append(text)
+			result = loader()
+			# If loader returned a list of Document objects, split them directly
+			if isinstance(result, list) and result and isinstance(result[0], Document):
+				chunks = splitter.split_documents(result)
+				all_docs.extend(chunks)
+			else:
+				# Treat result as plain text (string)
+				text = str(result)
+				if text and text.strip():
+					doc = Document(page_content=text, metadata={"source": str(p)})
+					chunks = splitter.split_documents([doc])
+					all_docs.extend(chunks)
 		else:
 			# treat src as raw text
 			raw_texts.append(str(src))
@@ -304,7 +345,7 @@ def load_and_split_documents(
 		for t in raw_texts:
 			if not t or not t.strip():
 				continue
-			doc = Document(page_content=t, metadata={"source": str(p) if p.exists() else None})
+			doc = Document(page_content=t, metadata={"source": None})
 			chunks = splitter.split_documents([doc])
 			all_docs.extend(chunks)
 
